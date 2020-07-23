@@ -228,5 +228,9 @@ return [
         'View' => Illuminate\Support\Facades\View::class,
 
     ],
+    /*
+     * Enrico Service 2.0 base url
+     */
+    'enrico_base_url' => env('ENRICO_BASE_URL', 'https://kayaposoft.com/'),
 
 ];
