@@ -14,4 +14,5 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', 'PublicHolidayController@index');
-Route::post('findbyyear', 'PublicHolidayController@findByYear')->name('findbyyear');
+Route::post('findByYear', 'PublicHolidayController@findByYear')->name('findByYear');
+Route::get('/downloadPDF/{id}','PublicHolidayController@downloadPDF')->name('downloadPdf');

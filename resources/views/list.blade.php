@@ -35,9 +35,10 @@
 
             <div> @include('notifications') </div>
 
+            @if (isset($downloadPdf) && $downloadPdf !== true)
             <div class="row">
                 <div class="col-md-12">
-                    <form action="{{ URL::route('findbyyear') }}" method="POST">
+                    <form action="{{ URL::route('findByYear') }}" method="POST">
                         {{ csrf_field() }}
                         <div class="form-group">
                             <label for="year">Year</label>
@@ -48,10 +49,14 @@
                             <input type="checkbox" class="form-check-input" value="1" {!! old('updateHolidays') ? 'checked' : '' !!} name="updateHolidays">
                             <label class="form-check-label" for="updateHolidays">Update holidays if exists in the database</label>
                         </div>
-                        <button type="submit" class="btn btn-primary">Submit</button>
+                        <div class="row">
+                        <div class="col-md-6"><button type="submit" class="btn btn-primary">Submit</button></div>
+                        <div class="col-md-6"><a href="{{URL::route('downloadPdf', $year)}}" class="float-right">Download PDF</a></div>
+                        </div>
                     </form>
                 </div>
             </div>
+            @endif
 
             <div class="row">
                 <div class="col-md-12">

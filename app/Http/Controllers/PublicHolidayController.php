@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Year;
 use App\YearHoliday;
+use Barryvdh\DomPDF\Facade as PDF;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -34,7 +35,9 @@ class PublicHolidayController extends Controller
             $holidays = $yearObj->holidays()->get();
         }
 
-        return view('list', ['year' => $year, 'holidays' => $holidays]);
+        $viewData = ['year' => $year, 'holidays' => $holidays, 'downloadPdf' => false];
+
+        return view('list', $viewData);
     }
 
     protected function validator(array $data)
@@ -164,4 +167,16 @@ class PublicHolidayController extends Controller
         return $data;
     }
 
+    /**
+     * @param $year
+     *
+     * @return mixed
+     */
+    public function downloadPDF($year) {
+        $holidays = Year::where('year', $year)->first()->holidays()->get();
+        $viewData = ['year' => $year, 'holidays' => $holidays, 'downloadPdf' => true];
+        $pdf = PDF::loadView('list', $viewData);
+
+        return $pdf->download("{$year}_SA_Public_Holidays.pdf");
+    }
 }
