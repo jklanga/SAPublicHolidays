@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Validator;
 
 class PublicHolidayController extends Controller
 {
@@ -32,9 +33,14 @@ class PublicHolidayController extends Controller
             $holidays = $yearObj->holidays()->get();
         }
 
-        Session::flash('info', "{$holidays->count()} holidays found for year {$year}.");
-
         return view('list', ['year' => $year, 'holidays' => $holidays]);
+    }
+
+    protected function validator(array $data)
+    {
+        return Validator::make($data, [
+            'year' => ['required', 'numeric'],
+        ]);
     }
 
     /**
@@ -45,6 +51,11 @@ class PublicHolidayController extends Controller
      */
     public function findByYear(Request $request)
     {
+        $validator = $this->validator($request->all());
+        if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator)->withInput();
+        }
+
         $year = $request->get('year');
         $params = [
             'action' => 'getHolidaysForYear', // method name to get holidays for given year in given country
@@ -66,7 +77,7 @@ class PublicHolidayController extends Controller
                         $yearHolidaysData
                     );
 
-                    Session::flash('info', "New year {$year} added to the database.");
+                    Session::flash('info', count($yearHolidaysData) . " new holidays for year {$year} added to the database.");
                 } catch (\Exception $ex) {
                     Session::flash('Error', "There was an error trying to insert new year {$year}.");
                 }
