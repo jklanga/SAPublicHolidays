@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Year;
+use App\YearHoliday;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -64,23 +65,32 @@ class PublicHolidayController extends Controller
             'holidayType' => 'public_holiday',
         ];
 
-        if (!Year::where('year', $year)->count()) {
-            if ($response = $this->endpointRequest('enrico/json/v2.0', $params)) {
-                try {
-                    $yearId = DB::table('years')->insertGetId(
-                        ['year' => $year]
-                    );
+        $yearExists = Year::where('year', $year)->count();
+        $updateDatabaseHolidays = $request->get('updateHolidays');
 
-                    $yearHolidaysData = $this->buildYearHolidaysData($yearId, $response);
+        if (!$yearExists || $updateDatabaseHolidays) {
+            $response = $this->endpointRequest('enrico/json/v2.0', $params);
 
-                    DB::table('year_holidays')->insert(
-                        $yearHolidaysData
-                    );
+            if (!is_array($response) && $response->error) {
+                return redirect()->back()->with('warning', $response->error)->withInput();
+            }
 
-                    Session::flash('info', count($yearHolidaysData) . " new holidays for year {$year} added to the database.");
-                } catch (\Exception $ex) {
-                    Session::flash('Error', "There was an error trying to insert new year {$year}.");
-                }
+            $currentDate = date('Y-m-d H:i:s');
+            try {
+                $yearId = Year::firstOrCreate(
+                    ['year' => $year],
+                    ['created_at' => $currentDate, 'updated_at' => $currentDate]
+                )->id;
+
+                $yearHolidaysData = $this->buildYearHolidaysData($yearId, $response);
+
+                DB::table('year_holidays')->insert(
+                    $yearHolidaysData
+                );
+
+                Session::flash('info', count($yearHolidaysData) . " new holiday(s) for year {$year} added to the database.");
+            } catch (\Exception $ex) {
+                Session::flash('Error', "There was an error trying to insert new year {$year}.");
             }
         }
 
@@ -99,6 +109,8 @@ class PublicHolidayController extends Controller
         try {
             $response = $this->client->request('GET', $url, ['query' => $params]);
         } catch (\Exception $ex) {
+            Session::flash('Error', 'There was an fetching the holidays:' . $ex->getMessage());
+
             return [];
         }
 
@@ -129,16 +141,24 @@ class PublicHolidayController extends Controller
      */
     public function buildYearHolidaysData(int $yearId, $response)
     {
+        $currentDate = date('Y-m-d H:i:s');
         $data = [];
         foreach ($response as $key => $result) {
             $date = $result->date;
             $name = $result->name;
 
-            $data[$key]['year_id'] = $yearId;
-            $data[$key]['name'] = is_array($name) ? $name[0]->text : 'No name';
-            $data[$key]['day'] = $date->day;
-            $data[$key]['month'] = $date->month;
-            $data[$key]['day_of_week'] = $date->dayOfWeek;
+            // Check if the record with the same date exists
+            $dateAttributes = ['year_id' => $yearId, 'month' => $date->month, 'day' => $date->day];
+            $recordExits = YearHoliday::where($dateAttributes)->first();
+            if ($recordExits === null) {
+                $data[$key]['year_id'] = $yearId;
+                $data[$key]['name'] = is_array($name) ? $name[0]->text : 'No name';
+                $data[$key]['day'] = $date->day;
+                $data[$key]['month'] = $date->month;
+                $data[$key]['day_of_week'] = $date->dayOfWeek;
+                $data[$key]['created_at'] = $currentDate;
+                $data[$key]['updated_at'] = $currentDate;
+            }
         }
 
         return $data;
