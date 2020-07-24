@@ -32,6 +32,8 @@ class PublicHolidayController extends Controller
             $holidays = $yearObj->holidays()->get();
         }
 
+        Session::flash('info', "{$holidays->count()} holidays found for year {$year}.");
+
         return view('list', ['year' => $year, 'holidays' => $holidays]);
     }
 
