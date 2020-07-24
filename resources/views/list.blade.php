@@ -41,11 +41,11 @@
                         {{ csrf_field() }}
                         <div class="form-group">
                             <label for="year">Year</label>
-                            <input type="text" class="form-control" name="year" placeholder="Enter year">
+                            <input type="text" class="form-control" name="year" value="{!! old('year') !!}" placeholder="Enter year">
                             <small id="yearHelp" class="form-text text-muted">Fetch SA public holidays by year.</small>
                         </div>
                         <div class="form-check">
-                            <input type="checkbox" class="form-check-input" value="1" name="updateHolidays">
+                            <input type="checkbox" class="form-check-input" value="1" {!! old('updateHolidays') ? 'checked' : '' !!} name="updateHolidays">
                             <label class="form-check-label" for="updateHolidays">Update holidays if exists in the database</label>
                         </div>
                         <button type="submit" class="btn btn-primary">Submit</button>
