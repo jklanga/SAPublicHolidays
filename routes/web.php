@@ -13,4 +13,5 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('findbyyear', 'PublicHolidayController@findByYear');
+Route::get('/', 'PublicHolidayController@index');
+Route::post('findbyyear', 'PublicHolidayController@findByYear')->name('findbyyear');

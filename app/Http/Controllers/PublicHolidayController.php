@@ -6,6 +6,7 @@ use App\Year;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Session;
 
 class PublicHolidayController extends Controller
@@ -15,6 +16,23 @@ class PublicHolidayController extends Controller
     public function __construct(Client $client)
     {
         $this->client = $client;
+    }
+
+    /**
+     * @param Request $request
+     *
+     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\View\Factory|\Illuminate\View\View
+     */
+    public function index(Request $request)
+    {
+        $year = $request->get('year') ?? date('Y');
+        $holidays = [];
+
+        if ($yearObj = Year::where('year', $year)->first()) {
+            $holidays = $yearObj->holidays()->get();
+        }
+
+        return view('list', ['year' => $year, 'holidays' => $holidays]);
     }
 
     /**
@@ -34,20 +52,26 @@ class PublicHolidayController extends Controller
         ];
 
         if (!Year::where('year', $year)->count()) {
-            $response = $this->endpointRequest('enrico/json/v2.0', $params);
+            if ($response = $this->endpointRequest('enrico/json/v2.0', $params)) {
+                try {
+                    $yearId = DB::table('years')->insertGetId(
+                        ['year' => $year]
+                    );
 
-            $yearId = DB::table('years')->insertGetId(
-                ['year' => $year]
-            );
+                    $yearHolidaysData = $this->buildYearHolidaysData($yearId, $response);
 
-            $yearHolidaysData = $this->buildYearHolidaysData($yearId, $response);
+                    DB::table('year_holidays')->insert(
+                        $yearHolidaysData
+                    );
 
-            DB::table('year_holidays')->insert(
-                $yearHolidaysData
-            );
-
-            return Session::flash('info', "New year {$year} added to the database.");
+                    Session::flash('info', "New year {$year} added to the database.");
+                } catch (\Exception $ex) {
+                    Session::flash('Error', "There was an error trying to insert new year {$year}.");
+                }
+            }
         }
+
+        return Redirect::to('/?year=' . $year);
     }
 
     /**
@@ -61,7 +85,7 @@ class PublicHolidayController extends Controller
     {
         try {
             $response = $this->client->request('GET', $url, ['query' => $params]);
-        } catch (\Exception $e) {
+        } catch (\Exception $ex) {
             return [];
         }
 
@@ -86,11 +110,11 @@ class PublicHolidayController extends Controller
      * Build any array data that will be used to insert new records in the database
      *
      * @param int $yearId
-     * @param array $response
+     * @param $response
      *
      * @return array
      */
-    public function buildYearHolidaysData(int $yearId, array $response)
+    public function buildYearHolidaysData(int $yearId, $response)
     {
         $data = [];
         foreach ($response as $key => $result) {
