@@ -7,6 +7,7 @@ use App\Year;
 use Barryvdh\DomPDF\Facade as PDF;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
@@ -89,11 +90,25 @@ class PublicHolidayController extends Controller
      *
      * @return mixed
      */
-    public function downloadPDF($year) {
+    public function downloadPDF($year)
+    {
+        $this->checkStorageFontsFolder();
+
         $holidays = Year::where('year', $year)->first()->holidays()->get();
         $viewData = ['year' => $year, 'holidays' => $holidays, 'downloadPdf' => true];
         $pdf = PDF::loadView('list', $viewData);
 
         return $pdf->download("{$year}_SA_Public_Holidays.pdf");
+    }
+
+    /**
+     * Checks and create the storage/fonts folder if it doesn't exists
+     */
+    private function checkStorageFontsFolder()
+    {
+        $fontsPath = storage_path('fonts');
+        if (!File::exists($fontsPath)) {
+            File::makeDirectory($fontsPath);
+        }
     }
 }
