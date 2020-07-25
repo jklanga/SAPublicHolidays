@@ -69,7 +69,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                        @if ($holidays->count())
+                        @if ($holidays)
                             @php
                                 $dayOfWeekMap = ['', 'Monday', 'Tuesday', 'Wednesay', 'Thurday', 'Friday', 'Saturday', 'Sunday'];
                             @endphp
